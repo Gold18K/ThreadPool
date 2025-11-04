@@ -114,6 +114,11 @@ void Thread_Pool::wait() {
 	});
 
 }
+bool Thread_Pool::is_idle() {
+	std::lock_guard<std::recursive_mutex> lock(internal_mutex);
+
+	return tasks.empty() && (waiting_threads == n_of_threads);
+}
 void Thread_Pool::remove_idle_callback() {
 	std::lock_guard<std::mutex>           global_lock(global_mutex);
 	std::lock_guard<std::recursive_mutex> internal_lock(internal_mutex);
@@ -132,11 +137,6 @@ std::function<void()> Thread_Pool::retrieve_task() {
 	tasks.pop();
 
 	return task;
-}
-bool                  Thread_Pool::is_idle() {
-	std::lock_guard<std::recursive_mutex> lock(internal_mutex);
-
-	return tasks.empty() && (waiting_threads == n_of_threads);
 }
 void                  Thread_Pool::worker_loop(std::stop_token _sToken,
 											   const uint32_t& _reduction_flag_index) {
