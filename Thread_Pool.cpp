@@ -115,6 +115,7 @@ void Thread_Pool::wait() {
 
 }
 bool Thread_Pool::is_idle() {
+	std::lock_guard<std::mutex>           global_lock(global_mutex);
 	std::lock_guard<std::recursive_mutex> lock(internal_mutex);
 
 	return tasks.empty() && (waiting_threads == n_of_threads);
