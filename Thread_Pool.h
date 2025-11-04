@@ -56,6 +56,7 @@ public:
 	void change_number_of_workers(const uint32_t& _n_of_workers);
 	void flush_tasks(const bool& _wait = true);
 	void wait();
+	bool is_idle();
 	template<typename F>
 	requires std::invocable<F>
 	void set_idle_callback(F&& _idle_callback) {
@@ -70,7 +71,6 @@ private:
 
 	// Private methods
 	std::function<void()> retrieve_task();
-	bool                  is_idle();
 	void                  worker_loop(std::stop_token _sToken,
 		                  			  const uint32_t& _reduction_flag_index);
 
