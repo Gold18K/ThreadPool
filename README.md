@@ -125,6 +125,21 @@ The method will wait here until all tasks are executed (The method is thread saf
 
     pool.wait(); // The method will wait here until all 20 tasks are executed
 
+- is_idle()
+
+The method will return true if all tasks are executed and workers are idling (The method is thread safe, and can be called from any thread).
+
+    Thread_Pool pool(10);
+
+    for (int i = 0; i != 20; ++i) {
+        pool.add_task([]() -> void {
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+        });
+    }
+
+    pool.wait();
+    pool.is_idle(); // The method will return true, as the previous pool.wait(); call made sure all workers are now idling and there is no pending task
+
 - set_idle_callback(callback)
 
 A callback void function to be run each time the Thread Pool has no pending tasks and all workers are available (The method is thread safe, and can be called from any thread):
