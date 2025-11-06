@@ -49,7 +49,7 @@ Thread_Pool::~Thread_Pool() {
 
 // Public methods
 void Thread_Pool::change_number_of_workers(const uint32_t& _n_of_workers) {
-	std::lock_guard<std::mutex> global_lock(global_mutex);
+	std::lock_guard<std::recursive_mutex> global_lock(global_mutex);
 
 	if (_n_of_workers == n_of_threads)
 		return;
@@ -90,7 +90,7 @@ void Thread_Pool::change_number_of_workers(const uint32_t& _n_of_workers) {
 	n_of_threads = _n_of_workers;
 }
 void Thread_Pool::flush_tasks(const bool& _wait) {
-	std::lock_guard<std::mutex>            global_lock(global_mutex);
+	std::lock_guard<std::recursive_mutex>  global_lock(global_mutex);
 	std::unique_lock<std::recursive_mutex> internal_lock(internal_mutex);
 
 	while (!tasks.empty())
@@ -106,7 +106,7 @@ void Thread_Pool::flush_tasks(const bool& _wait) {
 
 }
 void Thread_Pool::wait() {
-	std::lock_guard<std::mutex>            global_lock(global_mutex);
+	std::lock_guard<std::recursive_mutex>  global_lock(global_mutex);
 	std::unique_lock<std::recursive_mutex> internal_lock(internal_mutex);
 
 	flush_condition.wait(internal_lock, [this] {
@@ -115,13 +115,13 @@ void Thread_Pool::wait() {
 
 }
 bool Thread_Pool::is_idle() {
-	std::lock_guard<std::mutex>           global_lock(global_mutex);
+	std::lock_guard<std::recursive_mutex> global_lock(global_mutex);
 	std::lock_guard<std::recursive_mutex> lock(internal_mutex);
 
 	return tasks.empty() && (waiting_threads == n_of_threads);
 }
 void Thread_Pool::remove_idle_callback() {
-	std::lock_guard<std::mutex>           global_lock(global_mutex);
+	std::lock_guard<std::recursive_mutex> global_lock(global_mutex);
 	std::lock_guard<std::recursive_mutex> internal_lock(internal_mutex);
 
 	idle_callback = nullptr;
