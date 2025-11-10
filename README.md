@@ -1,4 +1,4 @@
-# ThreadPool-Cpp-20
+# ThreadPool
 This repository contains a C++20 implementation of a Thread Pool, using the most recent std::jthreads and implementing various extra functionalities!
 
 ## Documentation
