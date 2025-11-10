@@ -31,8 +31,6 @@ public:
 	template<typename F>
 	requires std::invocable<F>
 	auto add_task(F&& _task) -> std::future<std::invoke_result_t<F>> {
-		std::lock_guard<std::recursive_mutex> global_lock(global_mutex);
-
 		using return_type = std::invoke_result_t<F>;
 
 		auto packaged_task = std::make_shared<std::packaged_task<return_type()>>(
@@ -60,7 +58,6 @@ public:
 	template<typename F>
 	requires std::invocable<F>
 	void set_idle_callback(F&& _idle_callback) {
-		std::lock_guard<std::recursive_mutex> global_lock(global_mutex);
 		std::lock_guard<std::recursive_mutex> internal_lock(internal_mutex);
 
 		idle_callback = std::make_unique<std::function<void()>>(std::forward<F>(_idle_callback));
@@ -75,9 +72,9 @@ private:
 		                  			  const uint32_t& _reduction_flag_index);
 
 	// Fields
-	uint32_t 					           n_of_threads;
+	uint32_t 				               n_of_threads;
 	std::unique_ptr<std::function<void()>> idle_callback;
-	std::atomic<uint32_t>				   waiting_threads;
+	uint32_t				               waiting_threads;
 	std::vector<std::jthread>			   threads;
 	std::vector<bool>					   reduction_flags;
 	std::queue<std::function<void()>>	   tasks;
