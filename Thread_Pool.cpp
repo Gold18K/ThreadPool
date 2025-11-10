@@ -33,6 +33,7 @@ Thread_Pool::Thread_Pool(const uint32_t& _n_of_workers) : n_of_threads(_n_of_wor
 
 // Destructor
 Thread_Pool::~Thread_Pool() {
+	std::lock_guard<std::recursive_mutex> global_lock(global_mutex);
 
 	for (auto& worker : threads)
 		worker.request_stop();
@@ -56,38 +57,49 @@ void Thread_Pool::change_number_of_workers(const uint32_t& _n_of_workers) {
 
 	if (_n_of_workers > n_of_threads) {
 
-		for (uint32_t i = n_of_threads; i < _n_of_workers; ++i) {
-			reduction_flags.push_back(false);
+		{
+			std::lock_guard<std::recursive_mutex> internal_lock(internal_mutex);
 
-			threads.push_back(std::jthread([this, i](std::stop_token _sToken) {
-				this->worker_loop(_sToken, i);
-			}));
+			for (uint32_t i = n_of_threads; i < _n_of_workers; ++i) {
+				reduction_flags.push_back(false);
+				
+				threads.push_back(std::jthread([this, i](std::stop_token _sToken) {
+					this->worker_loop(_sToken, i);
+				}));
+			}
+
+			waiting_threads += _n_of_workers - n_of_threads;
+			n_of_threads     = _n_of_workers;
 		}
 
-		waiting_threads += _n_of_workers - n_of_threads;
 	}
 
 	if (_n_of_workers < n_of_threads) {
+		const uint32_t old_n_of_threads = n_of_threads;
 
 		{
-			std::lock_guard<std::recursive_mutex> lock(internal_mutex);
+			std::lock_guard<std::recursive_mutex> internal_lock(internal_mutex);
 
 			for (uint32_t i = _n_of_workers; i < n_of_threads; ++i)
 				reduction_flags[i] = true;
 
+			n_of_threads = _n_of_workers;
 		}
 
 		workers_condition.notify_all();
 
-		for (uint32_t i = _n_of_workers; i < n_of_threads; ++i)
+		for (uint32_t i = _n_of_workers; i < old_n_of_threads; ++i)
 			if (threads[i].joinable())
 				threads[i].join();
 
-		reduction_flags.resize(_n_of_workers);
+		{
+			std::lock_guard<std::recursive_mutex> internal_lock(internal_mutex);
+			reduction_flags.resize(_n_of_workers);
+		}
+
 		threads.resize(_n_of_workers);
 	}
 
-	n_of_threads = _n_of_workers;
 }
 void Thread_Pool::flush_tasks(const bool& _wait) {
 	std::lock_guard<std::recursive_mutex>  global_lock(global_mutex);
@@ -97,11 +109,9 @@ void Thread_Pool::flush_tasks(const bool& _wait) {
 		tasks.pop();
 
 	if (_wait) {
-
 		flush_condition.wait(internal_lock, [this] {
-			return waiting_threads == n_of_threads;
+			return tasks.empty() && (waiting_threads == n_of_threads);
 		});
-
 	}
 
 }
@@ -115,13 +125,11 @@ void Thread_Pool::wait() {
 
 }
 bool Thread_Pool::is_idle() {
-	std::lock_guard<std::recursive_mutex> global_lock(global_mutex);
-	std::lock_guard<std::recursive_mutex> lock(internal_mutex);
+	std::lock_guard<std::recursive_mutex> internal_lock(internal_mutex);
 
 	return tasks.empty() && (waiting_threads == n_of_threads);
 }
 void Thread_Pool::remove_idle_callback() {
-	std::lock_guard<std::recursive_mutex> global_lock(global_mutex);
 	std::lock_guard<std::recursive_mutex> internal_lock(internal_mutex);
 
 	idle_callback = nullptr;
@@ -129,7 +137,6 @@ void Thread_Pool::remove_idle_callback() {
 
 // Private methods
 std::function<void()> Thread_Pool::retrieve_task() {
-	std::lock_guard<std::recursive_mutex> lock(internal_mutex);
 
 	if (tasks.empty())
 		return []{};
@@ -144,11 +151,12 @@ void                  Thread_Pool::worker_loop(std::stop_token _sToken,
 
 	while (true) {
 		std::function<void()> task;
+		std::function<void()> callback;
 
 		{
-			std::unique_lock<std::recursive_mutex> lock(internal_mutex);
+			std::unique_lock<std::recursive_mutex> internal_lock(internal_mutex);
 
-			workers_condition.wait(lock, [this, &_sToken, &_reduction_flag_index] {
+			workers_condition.wait(internal_lock, [this, &_sToken, &_reduction_flag_index] {
 				return _sToken.stop_requested() || !tasks.empty() || reduction_flags[_reduction_flag_index];
 			});
 
@@ -162,11 +170,19 @@ void                  Thread_Pool::worker_loop(std::stop_token _sToken,
 
 		task();
 
-		++waiting_threads;
-		flush_condition.notify_one();
+		{
+			std::lock_guard<std::recursive_mutex> internal_lock(internal_mutex);
 
-		if (idle_callback && is_idle())
-			(*idle_callback)();
+			++waiting_threads;
+			flush_condition.notify_one();
+
+			if (idle_callback && tasks.empty() && (waiting_threads == n_of_threads))
+				callback = *idle_callback;
+
+		}
+		
+		if (callback)
+			callback();
 
 	}
 
