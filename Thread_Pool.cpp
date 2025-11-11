@@ -187,4 +187,3 @@ void                  Thread_Pool::worker_loop(std::stop_token _sToken,
 	}
 
 }
-
