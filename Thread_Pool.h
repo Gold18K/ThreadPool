@@ -31,6 +31,8 @@ public:
 	template<typename F>
 	requires std::invocable<F>
 	auto add_task(F&& _task) -> std::future<std::invoke_result_t<F>> {
+		std::lock_guard<std::recursive_mutex> global_lock(global_mutex);
+
 		using return_type = std::invoke_result_t<F>;
 
 		auto packaged_task = std::make_shared<std::packaged_task<return_type()>>(
