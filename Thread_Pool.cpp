@@ -110,7 +110,7 @@ void Thread_Pool::flush_tasks(const bool& _wait) {
 
 	if (_wait) {
 		flush_condition.wait(internal_lock, [this] {
-			return tasks.empty() && (waiting_threads == n_of_threads);
+			return waiting_threads == n_of_threads;
 		});
 	}
 
@@ -187,3 +187,4 @@ void                  Thread_Pool::worker_loop(std::stop_token _sToken,
 	}
 
 }
+
