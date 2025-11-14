@@ -44,7 +44,7 @@ public:
 		{
 			std::lock_guard<std::recursive_mutex> internal_lock(internal_mutex);
 
-			tasks.emplace([packaged_task]() {
+			tasks.emplace([packaged_task]() -> void {
 				(*packaged_task)();
 			});
 		}
