@@ -63,7 +63,7 @@ void Thread_Pool::change_number_of_workers(const uint32_t& _n_of_workers) {
 			for (uint32_t i = n_of_threads; i < _n_of_workers; ++i) {
 				reduction_flags.push_back(false);
 				
-				threads.push_back(std::jthread([this, i](std::stop_token _sToken) {
+				threads.push_back(std::jthread([this, i](std::stop_token _sToken) -> void {
 					this->worker_loop(_sToken, i);
 				}));
 			}
@@ -109,7 +109,7 @@ void Thread_Pool::flush_tasks(const bool& _wait) {
 		tasks.pop();
 
 	if (_wait) {
-		flush_condition.wait(internal_lock, [this] {
+		flush_condition.wait(internal_lock, [this]() -> bool {
 			return waiting_threads == n_of_threads;
 		});
 	}
@@ -119,7 +119,7 @@ void Thread_Pool::wait() {
 	std::lock_guard<std::recursive_mutex>  global_lock(global_mutex);
 	std::unique_lock<std::recursive_mutex> internal_lock(internal_mutex);
 
-	flush_condition.wait(internal_lock, [this] {
+	flush_condition.wait(internal_lock, [this]() -> bool {
 		return tasks.empty() && (waiting_threads == n_of_threads);
 	});
 
@@ -139,7 +139,7 @@ void Thread_Pool::remove_idle_callback() {
 std::function<void()> Thread_Pool::retrieve_task() {
 
 	if (tasks.empty())
-		return []{};
+		return []() -> void {};
 
 	std::function<void()> task = tasks.front();
 	tasks.pop();
@@ -156,7 +156,7 @@ void                  Thread_Pool::worker_loop(std::stop_token _sToken,
 		{
 			std::unique_lock<std::recursive_mutex> internal_lock(internal_mutex);
 
-			workers_condition.wait(internal_lock, [this, &_sToken, &_reduction_flag_index] {
+			workers_condition.wait(internal_lock, [this, &_sToken, &_reduction_flag_index]() -> bool {
 				return _sToken.stop_requested() || !tasks.empty() || reduction_flags[_reduction_flag_index];
 			});
 
