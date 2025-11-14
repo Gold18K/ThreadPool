@@ -35,12 +35,12 @@ Thread_Pool::Thread_Pool(const uint32_t& _n_of_workers) : n_of_threads(_n_of_wor
 Thread_Pool::~Thread_Pool() {
 	std::lock_guard<std::recursive_mutex> global_lock(global_mutex);
 
+	flush_tasks(false);
+
 	for (auto& worker : threads)
 		worker.request_stop();
 
 	workers_condition.notify_all();
-
-	flush_tasks(false);
 
 	for (auto& worker : threads)
 		if (worker.joinable())
@@ -162,7 +162,7 @@ void                  Thread_Pool::worker_loop(std::stop_token _sToken,
 
 			--waiting_threads;
 
-			if ((_sToken.stop_requested() && tasks.empty()) || reduction_flags[_reduction_flag_index])
+			if (_sToken.stop_requested() || reduction_flags[_reduction_flag_index])
 				return;
 			
 			task = retrieve_task();
