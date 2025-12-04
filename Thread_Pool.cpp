@@ -8,7 +8,6 @@
 #include <queue>
 #include <thread>
 #include "Thread_Pool.h"
-#include "Thread_Safe_Cout.h"
 #include <vector>
 
 // Constructors
@@ -187,3 +186,4 @@ void                  Thread_Pool::worker_loop(std::stop_token _sToken,
 	}
 
 }
+
