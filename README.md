@@ -1,5 +1,5 @@
 # ThreadPool
-This repository contains a C++23 implementation of a Thread Pool, using the most recent std::jthreads and C++ modules, and implementing various extra functionalities!
+This repository contains a C++23 implementation of a Thread Pool, using the most recent Jthreads and C++ Modules, and implementing various extra functionalities!
 
 ## Documentation
 
