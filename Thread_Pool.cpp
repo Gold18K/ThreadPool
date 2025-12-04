@@ -1,17 +1,12 @@
 
+// Imports
+import std;
+
 // Inclusions
-#include <atomic>
-#include <condition_variable>
-#include <functional>
-#include <iostream>
-#include <mutex>
-#include <queue>
-#include <thread>
 #include "Thread_Pool.h"
-#include <vector>
 
 // Constructors
-Thread_Pool::Thread_Pool(const uint32_t& _n_of_workers) : n_of_threads(_n_of_workers),
+Thread_Pool::Thread_Pool(const std::uint32_t& _n_of_workers) : n_of_threads(_n_of_workers),
 													      idle_callback(nullptr),
 														  waiting_threads(n_of_threads),
 														  threads(),
@@ -22,7 +17,7 @@ Thread_Pool::Thread_Pool(const uint32_t& _n_of_workers) : n_of_threads(_n_of_wor
 														  workers_condition(),
 														  flush_condition() {
 
-	for (uint32_t i = 0; i < n_of_threads; ++i) {
+	for (std::uint32_t i = 0; i < n_of_threads; ++i) {
 		threads.push_back(std::jthread([this, i](std::stop_token _sToken) {
 			this->worker_loop(_sToken, i);
 		}));
@@ -48,7 +43,7 @@ Thread_Pool::~Thread_Pool() {
 }
 
 // Public methods
-void Thread_Pool::change_number_of_workers(const uint32_t& _n_of_workers) {
+void Thread_Pool::change_number_of_workers(const std::uint32_t& _n_of_workers) {
 	std::lock_guard<std::recursive_mutex> global_lock(global_mutex);
 
 	if (_n_of_workers == n_of_threads)
@@ -59,7 +54,7 @@ void Thread_Pool::change_number_of_workers(const uint32_t& _n_of_workers) {
 		{
 			std::lock_guard<std::recursive_mutex> internal_lock(internal_mutex);
 
-			for (uint32_t i = n_of_threads; i < _n_of_workers; ++i) {
+			for (std::uint32_t i = n_of_threads; i < _n_of_workers; ++i) {
 				reduction_flags.push_back(false);
 				
 				threads.push_back(std::jthread([this, i](std::stop_token _sToken) -> void {
@@ -74,12 +69,12 @@ void Thread_Pool::change_number_of_workers(const uint32_t& _n_of_workers) {
 	}
 
 	if (_n_of_workers < n_of_threads) {
-		const uint32_t old_n_of_threads = n_of_threads;
+		const std::uint32_t old_n_of_threads = n_of_threads;
 
 		{
 			std::lock_guard<std::recursive_mutex> internal_lock(internal_mutex);
 
-			for (uint32_t i = _n_of_workers; i < n_of_threads; ++i)
+			for (std::uint32_t i = _n_of_workers; i < n_of_threads; ++i)
 				reduction_flags[i] = true;
 
 			n_of_threads = _n_of_workers;
@@ -87,7 +82,7 @@ void Thread_Pool::change_number_of_workers(const uint32_t& _n_of_workers) {
 
 		workers_condition.notify_all();
 
-		for (uint32_t i = _n_of_workers; i < old_n_of_threads; ++i)
+		for (std::uint32_t i = _n_of_workers; i < old_n_of_threads; ++i)
 			if (threads[i].joinable())
 				threads[i].join();
 
@@ -146,7 +141,7 @@ std::function<void()> Thread_Pool::retrieve_task() {
 	return task;
 }
 void                  Thread_Pool::worker_loop(std::stop_token _sToken,
-											   const uint32_t& _reduction_flag_index) {
+											   const std::uint32_t& _reduction_flag_index) {
 
 	while (true) {
 		std::function<void()> task;
@@ -186,4 +181,3 @@ void                  Thread_Pool::worker_loop(std::stop_token _sToken,
 	}
 
 }
-
