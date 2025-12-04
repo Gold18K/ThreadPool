@@ -1,22 +1,14 @@
 #pragma once
 
-// Inclusions
-#include <atomic>
-#include <condition_variable>
-#include <functional>
-#include <future>
-#include <memory>
-#include <mutex>
-#include <queue>
-#include <thread>
-#include <vector>
+// Imports
+import std;
 
 class Thread_Pool {
 
 public:
 
 	// Constructors
-	Thread_Pool(const uint32_t& _n_of_workers);
+	Thread_Pool(const std::uint32_t& _n_of_workers);
 	Thread_Pool(const Thread_Pool&) = delete;
 	Thread_Pool(Thread_Pool&&)      = delete;
 
@@ -53,7 +45,7 @@ public:
 
 		return result_future;
 	}
-	void change_number_of_workers(const uint32_t& _n_of_workers);
+	void change_number_of_workers(const std::uint32_t& _n_of_workers);
 	void flush_tasks(const bool& _wait = true);
 	void wait();
 	bool is_idle();
@@ -71,12 +63,12 @@ private:
 	// Private methods
 	std::function<void()> retrieve_task();
 	void                  worker_loop(std::stop_token _sToken,
-		                  			  const uint32_t& _reduction_flag_index);
+		                  			  const std::uint32_t& _reduction_flag_index);
 
 	// Fields
-	uint32_t 				               n_of_threads;
+	std::uint32_t 				           n_of_threads;
 	std::unique_ptr<std::function<void()>> idle_callback;
-	uint32_t				               waiting_threads;
+	std::uint32_t				           waiting_threads;
 	std::vector<std::jthread>			   threads;
 	std::vector<bool>					   reduction_flags;
 	std::queue<std::function<void()>>	   tasks;
