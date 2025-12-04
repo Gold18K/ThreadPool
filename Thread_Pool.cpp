@@ -7,15 +7,15 @@ import std;
 
 // Constructors
 Thread_Pool::Thread_Pool(const std::uint32_t& _n_of_workers) : n_of_threads(_n_of_workers),
-													      idle_callback(nullptr),
-														  waiting_threads(n_of_threads),
-														  threads(),
-													      reduction_flags(_n_of_workers, false),
-														  tasks(),
-														  global_mutex(),
-														  internal_mutex(),
-														  workers_condition(),
-														  flush_condition() {
+														       idle_callback(nullptr),
+														       waiting_threads(n_of_threads),
+														       threads(),
+														       reduction_flags(_n_of_workers, false),
+														       tasks(),
+														       global_mutex(),
+														       internal_mutex(),
+														       workers_condition(),
+														       flush_condition() {
 
 	for (std::uint32_t i = 0; i < n_of_threads; ++i) {
 		threads.push_back(std::jthread([this, i](std::stop_token _sToken) {
